@@ -2,10 +2,13 @@ package com.example.praktam_2417051066.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// 🌸 Soft Pink Theme (Feminin & Elegant)
+val PinkPrimary = Color(0xFFFF8FAB)      // pink utama (soft tapi tetap hidup)
+val PinkSecondary = Color(0xFFFFC2D1)    // pink muda
+val PinkAccent = Color(0xFFFFE5EC)       // sangat soft (background elemen kecil)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+val BackgroundSoft = Color(0xFFFFF6F9)   // background utama (hampir putih pink)
+val CardSoft = Color(0xFFFFFFFF)         // card putih clean
+
+val TextPrimary = Color(0xFF4A4A4A)      // abu gelap (biar ga terlalu keras)
+val TextOnPrimary = Color(0xFFFFFFFF)    // teks di atas tombol pink

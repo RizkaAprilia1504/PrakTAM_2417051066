@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -17,7 +18,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -46,17 +46,17 @@ fun DaftarProdukScreen() {
     val produk = ProductSource.dummyProduct
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
-        // 🔥 HEADER (LazyRow)
         item {
             Text(
                 text = "Rekomendasi",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleLarge
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -73,12 +73,10 @@ fun DaftarProdukScreen() {
 
             Text(
                 text = "Semua Produk",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleLarge
             )
         }
 
-        // 🔥 LIST UTAMA
         items(produk) { item ->
             DetailScreen(product = item)
         }
@@ -90,7 +88,10 @@ fun ProductRowItem(product: Product) {
 
     Card(
         modifier = Modifier.width(140.dp),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column {
             Image(
@@ -105,9 +106,13 @@ fun ProductRowItem(product: Product) {
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(
                     text = product.nama,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleMedium
                 )
-                Text(text = "Rp ${product.harga}")
+                Text(
+                    text = "Rp ${product.harga}",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }
@@ -120,7 +125,10 @@ fun DetailScreen(product: Product) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
 
         Column {
@@ -144,11 +152,9 @@ fun DetailScreen(product: Product) {
                         imageVector =
                             if (isFavorite) Icons.Filled.Favorite
                             else Icons.Outlined.FavoriteBorder,
-
                         contentDescription = "Favorite",
-
                         tint =
-                            if (isFavorite) Color.Red
+                            if (isFavorite) MaterialTheme.colorScheme.primary
                             else Color.White
                     )
                 }
@@ -158,13 +164,23 @@ fun DetailScreen(product: Product) {
 
                 Text(
                     text = product.nama,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleLarge
                 )
 
-                Text(text = product.deskripsi)
+                Spacer(modifier = Modifier.height(4.dp))
 
-                Text(text = "Rp ${product.harga}")
+                Text(
+                    text = product.deskripsi,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Rp ${product.harga}",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
