@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,18 +18,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.example.praktam_2417051066.model.Product
-import com.example.praktam_2417051066.model.ProductSource
+import com.example.praktam_2417051066.network.RetrofitClient
 import com.example.praktam_2417051066.ui.theme.PrakTAM_2417051066Theme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -50,16 +52,20 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation(navController: NavController) {
+    var products by remember { mutableStateOf<List<Product>>(emptyList()) }
+    
     NavHost(
         navController = navController as androidx.navigation.NavHostController,
         startDestination = "home"
     ) {
         composable("home") {
-            DaftarProdukScreen(navController)
+            DaftarProdukScreen(navController) { fetchedProducts ->
+                products = fetchedProducts
+            }
         }
         composable("detail/{nama}") { backStackEntry ->
             val nama = backStackEntry.arguments?.getString("nama")
-            val product = ProductSource.dummyProduct.find { it.nama == nama }
+            val product = products.find { it.nama == nama }
 
             if (product != null) {
                 DetailScreen(product = product, navController = navController, isFullScreen = true)
@@ -69,42 +75,88 @@ fun AppNavigation(navController: NavController) {
 }
 
 @Composable
-fun DaftarProdukScreen(navController: NavController) {
-    val produk = ProductSource.dummyProduct
+fun DaftarProdukScreen(navController: NavController, onProductsLoaded: (List<Product>) -> Unit = {}) {
+    var products by remember { mutableStateOf<List<Product>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var isError by remember { mutableStateOf(false) }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            Text(
-                text = "Rekomendasi",
-                style = MaterialTheme.typography.titleLarge
-            )
+    LaunchedEffect(Unit) {
+        try {
+            products = RetrofitClient.instance.getProducts()
+            onProductsLoaded(products)
+            isLoading = false
+            isError = false
+        } catch (e: Exception) {
+            isLoading = false
+            isError = true
+        }
+    }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else if (isError || products.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                items(produk) { item ->
-                    ProductRowItem(product = item, navController = navController)
+                Text(
+                    text = "Gagal Memuat Data",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Red
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Pastikan koneksi internet Anda menyala",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Text(
+                    text = "Rekomendasi",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(products) { item ->
+                        ProductRowItem(product = item, navController = navController)
+                    }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Semua Produk",
+                    style = MaterialTheme.typography.titleLarge
+                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Semua Produk",
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
-
-        items(produk) { item ->
-            ProductItem(product = item, navController = navController)
+            items(products) { item ->
+                ProductItem(product = item, navController = navController)
+            }
         }
     }
 }
@@ -113,19 +165,22 @@ fun DaftarProdukScreen(navController: NavController) {
 fun ProductRowItem(product: Product, navController: NavController) {
     Card(
         modifier = Modifier
-            .width(140.dp)
+            .width(160.dp)
             .clickable {
                 navController.navigate("detail/${product.nama}")
             },
         shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column {
-            Image(
-                painter = painterResource(id = product.imageRes),
+            AsyncImage(
+                model = product.imageUrl,
                 contentDescription = product.nama,
+                placeholder = painterResource(id = R.drawable.img),
+                error = painterResource(id = R.drawable.img_1),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp),
@@ -164,12 +219,14 @@ fun ProductItem(product: Product, navController: NavController) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                painter = painterResource(id = product.imageRes),
+            AsyncImage(
+                model = product.imageUrl,
                 contentDescription = product.nama,
+                placeholder = painterResource(id = R.drawable.img),
+                error = painterResource(id = R.drawable.img_1),
                 modifier = Modifier
                     .size(80.dp)
-                    .background(Color.LightGray, RoundedCornerShape(8.dp)),
+                    .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop
             )
 
@@ -197,22 +254,24 @@ fun DetailScreen(product: Product, navController: NavController, isFullScreen: B
     val snackbarHostState = remember { SnackbarHostState() }
     var isFavorite by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxWidth()) {
+    Box(modifier = Modifier.fillMaxSize()) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(if (isFullScreen) 0.dp else 16.dp),
+            shape = if (isFullScreen) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
             Column {
                 Box {
-                    Image(
-                        painter = painterResource(id = product.imageRes),
+                    AsyncImage(
+                        model = product.imageUrl,
                         contentDescription = product.nama,
+                        placeholder = painterResource(id = R.drawable.img),
+                        error = painterResource(id = R.drawable.img_1),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp),
+                            .height(if (isFullScreen) 250.dp else 200.dp),
                         contentScale = ContentScale.Crop
                     )
 
@@ -248,12 +307,13 @@ fun DetailScreen(product: Product, navController: NavController, isFullScreen: B
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "Rp ${product.harga}",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "Harga: Rp ${product.harga}",
+                        color = Color(0xFFE65100),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
                         onClick = {
@@ -266,12 +326,13 @@ fun DetailScreen(product: Product, navController: NavController, isFullScreen: B
                                     )
                                     isLoading = false
                                 }
-                            } else {
-                                navController.navigate("detail/${product.nama}")
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !isLoading
+                        enabled = !isLoading,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFE65100)
+                        )
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
@@ -282,16 +343,19 @@ fun DetailScreen(product: Product, navController: NavController, isFullScreen: B
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Memproses...")
                         } else {
-                            Text(if (isFullScreen) "Pesan Sekarang" else "Lihat Detail")
+                            Text("Pesan Sekarang")
                         }
                     }
 
                     if (isFullScreen) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(
+                        Button(
                             onClick = { navController.popBackStack() },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = !isLoading
+                            enabled = !isLoading,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFE65100)
+                            )
                         ) {
                             Text("Kembali")
                         }
@@ -301,7 +365,7 @@ fun DetailScreen(product: Product, navController: NavController, isFullScreen: B
         }
         SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp)
         )
     }
 }
