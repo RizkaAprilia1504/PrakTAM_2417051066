@@ -31,8 +31,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import com.example.praktam_2417051066.model.Product
-import com.example.praktam_2417051066.network.RetrofitClient
+import com.example.praktam_2417051066.data.model.Product
+import com.example.praktam_2417051066.data.repository.ProductRepository
 import com.example.praktam_2417051066.ui.theme.PrakTAM_2417051066Theme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -76,16 +76,18 @@ fun AppNavigation(navController: NavController) {
 
 @Composable
 fun DaftarProdukScreen(navController: NavController, onProductsLoaded: (List<Product>) -> Unit = {}) {
+    val repository = remember { ProductRepository() }
     var products by remember { mutableStateOf<List<Product>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var isError by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         try {
-            products = RetrofitClient.instance.getProducts()
+            isLoading = true
+            products = repository.getProducts()
             onProductsLoaded(products)
             isLoading = false
-            isError = false
+            isError = products.isEmpty()
         } catch (e: Exception) {
             isLoading = false
             isError = true
